@@ -4,8 +4,14 @@ namespace Howyi\Conv\Migration\Line;
 
 use Howyi\Conv\Structure\TableTTLStructure;
 
-class TableTTLMigrationLine extends AbstractMigrationLine
+/**
+ * ALTER TABLE ~ TTL ~
+ */
+class TableTTLMigrationLine extends AbstractMigrationLine implements SeparateMigrationLineInterface
 {
+    private $separateUpLineList = [];
+    private $separateDownLineList = [];
+
     /**
      * @param TableTTLStructure|null $before
      * @param TableTTLStructure|null $after
@@ -15,12 +21,18 @@ class TableTTLMigrationLine extends AbstractMigrationLine
         ?TableTTLStructure $after
     ) {
         if ($this->isDefinitionChanged($before, $after)) {
-            $this->upLineList[] = $this->toQuery(
+            $this->addDefinitionLine(
+                $this->upLineList,
+                $this->separateUpLineList,
                 $after,
+                $this->shouldIncludeDefaultEnable($before, $after),
                 $this->shouldIncludeDefaultJobInterval($before, $after)
             );
-            $this->downLineList[] = $this->toQuery(
+            $this->addDefinitionLine(
+                $this->downLineList,
+                $this->separateDownLineList,
                 $before,
+                $this->shouldIncludeDefaultEnable($after, $before),
                 $this->shouldIncludeDefaultJobInterval($after, $before)
             );
             return;
@@ -31,8 +43,41 @@ class TableTTLMigrationLine extends AbstractMigrationLine
             $this->downLineList[] = $this->toEnableQuery($before);
         }
         if ($this->getJobInterval($before) !== $this->getJobInterval($after)) {
-            $this->upLineList[] = $this->toJobIntervalQuery($after);
-            $this->downLineList[] = $this->toJobIntervalQuery($before);
+            $this->separateUpLineList[] = $this->toJobIntervalQuery($after);
+            $this->separateDownLineList[] = $this->toJobIntervalQuery($before);
+        }
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getSeparateUp(): array
+    {
+        return $this->separateUpLineList;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getSeparateDown(): array
+    {
+        return $this->separateDownLineList;
+    }
+
+    private function addDefinitionLine(
+        array &$lineList,
+        array &$separateLineList,
+        ?TableTTLStructure $ttl,
+        bool $includeDefaultEnable,
+        bool $includeDefaultJobInterval
+    ): void {
+        if (is_null($ttl)) {
+            $lineList[] = 'REMOVE TTL';
+            return;
+        }
+        $lineList[] = $ttl->toAlterQuery($includeDefaultEnable);
+        if ($includeDefaultJobInterval || !is_null($ttl->getJobInterval())) {
+            $separateLineList[] = $this->toJobIntervalQuery($ttl);
         }
     }
 
@@ -46,13 +91,14 @@ class TableTTLMigrationLine extends AbstractMigrationLine
         return $before->getExpression() !== $after->getExpression();
     }
 
-    private function toQuery(
-        ?TableTTLStructure $ttl,
-        bool $includeDefaultJobInterval = false
-    ): string {
-        return is_null($ttl)
-            ? 'REMOVE TTL'
-            : $ttl->toQuery($includeDefaultJobInterval);
+    private function shouldIncludeDefaultEnable(
+        ?TableTTLStructure $before,
+        ?TableTTLStructure $after
+    ): bool {
+        return !is_null($before)
+            && !is_null($after)
+            && !is_null($before->getEnable())
+            && is_null($after->getEnable());
     }
 
     private function shouldIncludeDefaultJobInterval(

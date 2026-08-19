@@ -3,6 +3,7 @@
 namespace Howyi\Conv\Migration\Table;
 
 use Howyi\Conv\Migration\Line\MigrationLineInterface;
+use Howyi\Conv\Migration\Line\SeparateMigrationLineInterface;
 
 class MigrationLineList
 {
@@ -47,5 +48,39 @@ class MigrationLineList
             $downLineList = array_merge($downLineList, $migrationLine->getDown());
         }
         return '  ' . join(',' . PHP_EOL . '  ', $downLineList);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getSeparateUp(): array
+    {
+        $separateUpLineList = [];
+        foreach ($this->migrationLineList as $migrationLine) {
+            if ($migrationLine instanceof SeparateMigrationLineInterface) {
+                $separateUpLineList = array_merge(
+                    $separateUpLineList,
+                    $migrationLine->getSeparateUp()
+                );
+            }
+        }
+        return $separateUpLineList;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getSeparateDown(): array
+    {
+        $separateDownLineList = [];
+        foreach (array_reverse($this->migrationLineList) as $migrationLine) {
+            if ($migrationLine instanceof SeparateMigrationLineInterface) {
+                $separateDownLineList = array_merge(
+                    $separateDownLineList,
+                    $migrationLine->getSeparateDown()
+                );
+            }
+        }
+        return $separateDownLineList;
     }
 }

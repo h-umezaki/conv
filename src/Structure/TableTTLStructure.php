@@ -50,16 +50,31 @@ class TableTTLStructure
             || $this->normalizedJobInterval() !== $target->normalizedJobInterval();
     }
 
-    public function toQuery(bool $includeDefaultJobInterval = false): string
-    {
-        $query = 'TTL = ' . $this->expression;
+    public function toQuery(
+        bool $includeDefaultEnable = false,
+        bool $includeDefaultJobInterval = false
+    ): string {
+        $query = $this->toAlterQuery($includeDefaultEnable);
         if (!is_null($this->enable)) {
             $query .= " TTL_ENABLE = '{$this->enable}'";
+        } elseif ($includeDefaultEnable) {
+            $query .= " TTL_ENABLE = 'ON'";
         }
         if (!is_null($this->jobInterval)) {
             $query .= " TTL_JOB_INTERVAL = '" . $this->escapeString($this->jobInterval) . "'";
         } elseif ($includeDefaultJobInterval) {
             $query .= " TTL_JOB_INTERVAL = '" . self::DEFAULT_JOB_INTERVAL . "'";
+        }
+        return $query;
+    }
+
+    public function toAlterQuery(bool $includeDefaultEnable = false): string
+    {
+        $query = 'TTL = ' . $this->expression;
+        if (!is_null($this->enable)) {
+            $query .= " TTL_ENABLE = '{$this->enable}'";
+        } elseif ($includeDefaultEnable) {
+            $query .= " TTL_ENABLE = 'ON'";
         }
         return $query;
     }
