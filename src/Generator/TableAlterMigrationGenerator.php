@@ -11,6 +11,7 @@ use Howyi\Conv\Migration\Line\TableCommentMigrationLine;
 use Howyi\Conv\Migration\Line\TableEngineMigrationLine;
 use Howyi\Conv\Migration\Line\TableCollateMigrationLine;
 use Howyi\Conv\Migration\Line\TableDefaultCharsetMigrationLine;
+use Howyi\Conv\Migration\Line\TableTTLMigrationLine;
 use Howyi\Conv\Migration\Table\MigrationLineList;
 use Howyi\Conv\Migration\Table\TableAlterMigration;
 use Howyi\Conv\Structure\TableStructure;
@@ -148,6 +149,17 @@ class TableAlterMigrationGenerator
         if ($beforeTable->getCollate() !== $afterTable->getCollate()) {
             $migrationLineList->add(
                 new TableCollateMigrationLine($beforeTable->getCollate(), $afterTable->getCollate())
+            );
+        }
+        $beforeTTL = $beforeTable->getTTL();
+        $afterTTL = $afterTable->getTTL();
+        if (
+            (is_null($beforeTTL) && !is_null($afterTTL))
+            || (!is_null($beforeTTL) && is_null($afterTTL))
+            || (!is_null($beforeTTL) && $beforeTTL->isChanged($afterTTL))
+        ) {
+            $migrationLineList->add(
+                new TableTTLMigrationLine($beforeTTL, $afterTTL)
             );
         }
         if ($indexAllMigration->isFirstExist()) {
