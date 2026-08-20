@@ -20,31 +20,23 @@ class TableTTLMigrationLine extends AbstractMigrationLine implements SeparateMig
         ?TableTTLStructure $before,
         ?TableTTLStructure $after
     ) {
-        if ($this->isDefinitionChanged($before, $after)) {
+        if (
+            $this->isDefinitionChanged($before, $after)
+            || $this->getEnable($before) !== $this->getEnable($after)
+            || $this->getJobInterval($before) !== $this->getJobInterval($after)
+        ) {
             $this->addDefinitionLine(
                 $this->upLineList,
-                $this->separateUpLineList,
                 $after,
                 $this->shouldIncludeDefaultEnable($before, $after),
                 $this->shouldIncludeDefaultJobInterval($before, $after)
             );
             $this->addDefinitionLine(
                 $this->downLineList,
-                $this->separateDownLineList,
                 $before,
                 $this->shouldIncludeDefaultEnable($after, $before),
                 $this->shouldIncludeDefaultJobInterval($after, $before)
             );
-            return;
-        }
-
-        if ($this->getEnable($before) !== $this->getEnable($after)) {
-            $this->upLineList[] = $this->toEnableQuery($after);
-            $this->downLineList[] = $this->toEnableQuery($before);
-        }
-        if ($this->getJobInterval($before) !== $this->getJobInterval($after)) {
-            $this->separateUpLineList[] = $this->toJobIntervalQuery($after);
-            $this->separateDownLineList[] = $this->toJobIntervalQuery($before);
         }
     }
 
@@ -66,7 +58,6 @@ class TableTTLMigrationLine extends AbstractMigrationLine implements SeparateMig
 
     private function addDefinitionLine(
         array &$lineList,
-        array &$separateLineList,
         ?TableTTLStructure $ttl,
         bool $includeDefaultEnable,
         bool $includeDefaultJobInterval
@@ -75,10 +66,10 @@ class TableTTLMigrationLine extends AbstractMigrationLine implements SeparateMig
             $lineList[] = 'REMOVE TTL';
             return;
         }
-        $lineList[] = $ttl->toAlterQuery($includeDefaultEnable);
-        if ($includeDefaultJobInterval || !is_null($ttl->getJobInterval())) {
-            $separateLineList[] = $this->toJobIntervalQuery($ttl);
-        }
+        $lineList[] = $ttl->toQuery(
+            $includeDefaultEnable,
+            $includeDefaultJobInterval
+        );
     }
 
     private function isDefinitionChanged(
@@ -121,20 +112,5 @@ class TableTTLMigrationLine extends AbstractMigrationLine implements SeparateMig
     private function getJobInterval(?TableTTLStructure $ttl): ?string
     {
         return is_null($ttl) ? null : $ttl->getJobInterval();
-    }
-
-    private function toEnableQuery(?TableTTLStructure $ttl): string
-    {
-        return "TTL_ENABLE = '" . $this->getEnable($ttl) . "'";
-    }
-
-    private function toJobIntervalQuery(?TableTTLStructure $ttl): string
-    {
-        if (is_null($ttl) || is_null($ttl->getJobInterval())) {
-            // REMOVE TTL_JOB_INTERVAL 構文がないため、TiDB のデフォルト値に戻す。
-            return "TTL_JOB_INTERVAL = '" . TableTTLStructure::DEFAULT_JOB_INTERVAL . "'";
-        }
-        $jobInterval = str_replace("'", "''", $ttl->getJobInterval());
-        return "TTL_JOB_INTERVAL = '$jobInterval'";
     }
 }

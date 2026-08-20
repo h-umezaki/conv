@@ -28,8 +28,8 @@ class TiDBTempDriver extends MySQL80Driver
             $ttlQuery = implode(' ', $matches[1]);
         } else {
             $nativeQuery = preg_replace('/\/\*(?!T!\[ttl\]).*?\*\//is', '', $createQuery);
-            $nativeQuery = preg_replace("/'(?:''|\\\\.|[^'])*'/s", '', $nativeQuery);
-            if (!preg_match('/\bTTL\s*=/i', $nativeQuery)) {
+            $nativeQueryWithoutStrings = preg_replace("/'(?:''|\\\\.|[^'])*'/s", '', $nativeQuery);
+            if (!preg_match('/\bTTL\s*=/i', $nativeQueryWithoutStrings)) {
                 return null;
             }
             $ttlQuery = $nativeQuery;

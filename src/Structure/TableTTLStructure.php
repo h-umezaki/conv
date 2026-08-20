@@ -55,11 +55,6 @@ class TableTTLStructure
         bool $includeDefaultJobInterval = false
     ): string {
         $query = $this->toAlterQuery($includeDefaultEnable);
-        if (!is_null($this->enable)) {
-            $query .= " TTL_ENABLE = '{$this->enable}'";
-        } elseif ($includeDefaultEnable) {
-            $query .= " TTL_ENABLE = 'ON'";
-        }
         if (!is_null($this->jobInterval)) {
             $query .= " TTL_JOB_INTERVAL = '" . $this->escapeString($this->jobInterval) . "'";
         } elseif ($includeDefaultJobInterval) {
