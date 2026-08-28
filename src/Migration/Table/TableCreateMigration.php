@@ -34,6 +34,9 @@ class TableCreateMigration extends AbstractTableMigration
         $createQueryFooter .= " DEFAULT CHARSET=$tableStructure->defaultCharset";
         $createQueryFooter .= " COLLATE=$tableStructure->collate";
         $createQueryFooter .= " COMMENT='$tableStructure->comment'";
+        if (!is_null($tableStructure->getTTL())) {
+            $createQueryFooter .= ' ' . $tableStructure->getTTL()->toQuery();
+        }
         if (!is_null($tableStructure->getPartition())) {
             $partitionQuery = $tableStructure->getPartition()->getQuery();
             $partitionQuery = sprintf("/*!50100 %s  */", $partitionQuery);

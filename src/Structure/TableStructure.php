@@ -99,6 +99,28 @@ class TableStructure implements TableStructureInterface
     }
 
     /**
+     * @return TableTTLStructure|null
+     */
+    public function getTTL(): ?TableTTLStructure
+    {
+        return array_key_exists('tidb_ttl', $this->properties)
+            ? $this->properties['tidb_ttl']
+            : null;
+    }
+
+    /**
+     * @param TableTTLStructure|null $ttl
+     */
+    public function setTTL(?TableTTLStructure $ttl): void
+    {
+        if (is_null($ttl)) {
+            unset($this->properties['tidb_ttl']);
+            return;
+        }
+        $this->properties['tidb_ttl'] = $ttl;
+    }
+
+    /**
      * @return array
      */
     public function getFieldList(): array

@@ -56,6 +56,15 @@ class TableAlterMigration extends AbstractTableMigration
         }
         $this->up .= ';';
         $this->down .= ';';
+
+        foreach ($migrationLineList->getSeparateUp() as $line) {
+            $this->up .= PHP_EOL . sprintf($queryHeaderTemplate, $beforeTableName);
+            $this->up .= PHP_EOL . '  ' . $line . ';';
+        }
+        foreach ($migrationLineList->getSeparateDown() as $line) {
+            $this->down .= PHP_EOL . sprintf($queryHeaderTemplate, $afterTableName);
+            $this->down .= PHP_EOL . '  ' . $line . ';';
+        }
     }
 
     /**
